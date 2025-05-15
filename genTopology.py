@@ -18,7 +18,7 @@ def generate_spanning_tree(num_nodes):
         T.add_edge(nodes[i], random.choice(nodes[:i]))
     return T
 
-def generate_connected_graph(num_nodes=20, min_edges=40, max_edges=50):
+def generate_connected_graph(num_nodes=20, min_edges=20, max_edges=30):
     """
     Generate a connected graph with num_nodes nodes and a random number of edges
     between min_edges and max_edges.
@@ -63,6 +63,52 @@ def generate_packet_intensity_matrix(G, intensity_min=1, intensity_max=10):
 
     return N
 
+
+def generate_edge_capacity_matrix(G, base_capacity=21000, scaling_factor=2000):
+    """
+    Generuje macierz przepustowości krawędzi, gdzie przepustowość zależy od stopni węzłów.
+
+    Przepustowość krawędzi (u,v) = base_capacity + scaling_factor * (degree(u) + degree(v))
+    """
+    num_nodes = G.number_of_nodes()
+    capacity_matrix = np.zeros((num_nodes, num_nodes), dtype=int)
+
+    node_degrees = dict(G.degree())
+
+    # Dla każdej krawędzi w grafie przypisz przepustowość zależną od stopnia węzłów
+    for u, v in G.edges():
+        # Obliczamy przepustowość w oparciu o sumę stopni węzłów
+        capacity = base_capacity + scaling_factor * (node_degrees[u] + node_degrees[v])
+        # Macierz jest symetryczna dla krawędzi nieskierowanych
+        capacity_matrix[u][v] = capacity
+        capacity_matrix[v][u] = capacity
+
+    return capacity_matrix
+
+
+def generate_edge_reliability_matrix(G, base_prob=0.9, scaling_factor=0.01):
+    """
+    Generuje macierz prawdopodobieństw, że krawędź nie ulegnie awarii.
+
+    Prawdopodobieństwo dla krawędzi (u,v) = min(base_prob + scaling_factor * (degree(u) + degree(v)), 0.99)
+    """
+    num_nodes = G.number_of_nodes()
+    reliability_matrix = np.zeros((num_nodes, num_nodes), dtype=float)
+
+    node_degrees = dict(G.degree())
+
+    # Dla każdej krawędzi w grafie przypisz prawdopodobieństwo zależne od stopnia węzłów
+    for u, v in G.edges():
+        # Obliczamy prawdopodobieństwo w oparciu o sumę stopni węzłów
+        # Ograniczamy maksymalną wartość do 0.99
+        prob = min(base_prob + scaling_factor * (node_degrees[u] + node_degrees[v]), 0.99)
+        # Macierz jest symetryczna dla krawędzi nieskierowanych
+        reliability_matrix[u][v] = prob
+        reliability_matrix[v][u] = prob
+
+    return reliability_matrix
+
+
 if __name__ == '__main__':
     num_nodes = 20
     # Generate a random, connected graph.
@@ -78,6 +124,16 @@ if __name__ == '__main__':
     # Save the matrix N to a text file. Each row corresponds to a node.
     np.savetxt("packet_intensity_matrix.txt", N, fmt='%d', delimiter=' ')
     print("Packet intensity matrix saved to packet_intensity_matrix.txt")
+
+    # Generuj i zapisz macierz przepustowości krawędzi
+    capacity_matrix = generate_edge_capacity_matrix(G)
+    np.savetxt("edge_capacity_matrix.txt", capacity_matrix, fmt='%d', delimiter=' ')
+    print("Edge capacity matrix saved to edge_capacity_matrix.txt")
+
+    # Generuj i zapisz macierz prawdopodobieństw niezawodności krawędzi
+    reliability_matrix = generate_edge_reliability_matrix(G)
+    np.savetxt("edge_reliability_matrix.txt", reliability_matrix, fmt='%.4f', delimiter=' ')
+    print("Edge reliability matrix saved to edge_reliability_matrix.txt")
 
     # (Optional) Visualize the generated graph.
     pos = nx.spring_layout(G)
